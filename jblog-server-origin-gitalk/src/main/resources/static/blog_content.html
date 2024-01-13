@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>博客正文</title>
+    <link rel="stylesheet" href="css/conmmon.css">
+    <link rel="stylesheet" href="css/blog_content.css">
+    <link rel="stylesheet" href="editor.md/css/editormd.preview.min.css" />
+    <script src="js/jquery.min.js"></script>
+    <script src="editor.md/editormd.js"></script>
+    <script src="editor.md/lib/marked.min.js"></script>
+    <script src="editor.md/lib/prettify.min.js"></script>
+    <script src="js/urlutils.js"></script>
+    <script src="js/logout.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+    <script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+
+
+</head>
+
+<body>
+<!-- 导航栏 -->
+<div class="nav">
+    <img class="userAvatar" src="#" alt="">
+    <a class="title" href="myblog_list.html">我的个人主页</a>
+    <!-- 用来占据中间位置 -->
+    <span class="spacer"></span>
+    <a href="blog_list.html">论坛主页</a>
+    <a href="blog_add.html">写博客</a>
+    <a id="loginButton" href="#">登录</a>
+</div>
+<!-- 版心 -->
+<div class="container">
+    <!-- 左侧个人信息 -->
+    <div class="container-left">
+        <div class="card">
+            <img class="userAvatar" src="img/avatar.png" class="avtar" alt="">
+            <h3 id="username"></h3>
+            <div class="counter">
+                <span>文章</span>
+            </div>
+            <div class="counter">
+                <span id="artcount"></span>
+            </div>
+        </div>
+    </div>
+    <!-- 右侧内容详情 -->
+    <div class="container-right">
+        <div class="blog-content">
+            <!-- 博客标题 -->
+            <h3 id="title"></h3>
+            <!-- 博客时间 -->
+            <div class="date">
+                发布时间：<span id="createtime"></span>
+                |
+                阅读量：<span id="rcount"></span>
+            </div>
+            <!-- 博客正文 -->
+            <div id="editorDiv">
+
+            </div>
+        </div>
+    </div>
+</div>
+<div id="gitalk-container"></div>
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        checkLoginAndUpdateButton();
+    });
+
+    function checkLoginAndUpdateButton() {
+        $.ajax({
+            url: '/user/checkLogin',
+            type: 'GET',
+            success: function(result) {
+                const loginButton = $('#loginButton');
+                const personalHomepage = $('#personalHomepage');
+                const userAvatar = $('.userAvatar'); // 选择类为 userAvatar 的元素
+                if (result.code === 200 && result.data === true) {
+                    // 用户已登录
+                    loginButton.text('注销');
+                    loginButton.attr('href', 'javascript:logout()');
+                    userAvatar.show(); // 显示用户头像
+                    personalHomepage.show(); // 显示个人主页链接
+                } else {
+                    // 用户未登录
+                    loginButton.text('登录');
+                    loginButton.attr('href', 'javascript:login()');
+                }
+            },
+            error: function(error) {
+                console.error('Error:', error);
+            }
+        });
+    }
+
+    var aid = getParamValue("aid");
+    var editormd;
+    function initEdit(md){
+        editormd = editormd.markdownToHTML("editorDiv", {
+            markdown : md, // Also, you can dynamic set Markdown text
+            // htmlDecode : true,  // Enable / disable HTML tag encode.
+            // htmlDecode : "style,script,iframe",  // Note: If enabled, you should filter some dangerous HTML tags for website security.
+        });
+    }
+    function loadUserAvatar() {
+        jQuery.ajax({
+            url: "/user/getPhotoLinkByAid" + "?aid=" + aid,  // 替换为实际获取头像 URL 的接口
+            type: "GET",
+            success: function(res) {
+                if (res.data) {
+                    jQuery(".userAvatar").attr("src", res.data);
+                }
+            },
+            error: function() {
+                console.error("Failed to load user avatar");
+            }
+        });
+    }
+
+    // 初始化页面
+    function init(){
+        // 1.效验参数
+        if(aid==null || aid<=0){
+            alert("参数有误！");
+            return false;
+        }
+        // 2.请求后端获取数据
+        jQuery.ajax({
+            url:"/art/detail",
+            type:"GET",
+            data:{
+                "aid":aid
+            },
+            success:function(res){
+                // 3.将数据展示到前端
+                if(res.code==200 && res.data!=null){
+                    var user = res.data.user;
+                    var art = res.data.art;
+                    if(user!=null){
+                        // 给用户对象设置值
+                        jQuery("#username").html(user.username);
+                        jQuery("#artcount").html(user.artCount); // 用户发布的总文章数
+                    }else{
+                        alert("抱歉：查询失败！"+res.msg);
+                    }
+                    if(art!=null){
+                        jQuery("#title").html(art.title);
+                        jQuery("#createtime").html(art.createTime);
+                        jQuery("#rcount").html(art.readCount); // 阅读量
+                        initEdit(art.content);
+                        incrementRCount();  // 增加阅读量
+                    }else{
+                        alert("抱歉：查询失败！"+res.msg);
+                    }
+                }else{
+                    alert("抱歉：查询失败！"+res.msg);
+                }
+            }
+        });
+    }
+    init();
+    loadUserAvatar();
+    var gitalk = new Gitalk({
+        clientID: 'd1e2523d0846f0297347',
+        clientSecret: '4b813befb028d4eaca497f273e62f4ae87784f22',
+        repo: 'jblog-comment',
+        owner: 'jtpYz',
+        admin: ['jtpYz'],
+        id: aid,      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false ,
+        createIssueManually: false// Facebook-like distraction free mode
+    })
+
+    gitalk.render('gitalk-container')
+
+    // 访问量加 1
+    function incrementRCount(){
+        if(aid==null || aid<=0){
+            return false;
+        }
+        jQuery.ajax({
+            url:"/art/incrementRCount",
+            type:"POST",
+            data:{
+                "aid":aid
+            },
+            success:function(res){
+                if(res.code==200 && res.data!=null) {
+                    // 可以在这里更新页面上的阅读量显示
+                    jQuery("#rcount").html(res.data.readCount);
+                }
+            }
+        });
+    }
+</script>
+</body>
+
+</html>

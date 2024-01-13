@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册页面</title>
+    <link rel="stylesheet" href="css/conmmon.css">
+    <link rel="stylesheet" href="css/login.css">
+    <script src="js/jquery.min.js"></script>
+</head>
+
+<body>
+<!-- 导航栏 -->
+<div class="nav">
+    <img src="img/blog-icon.jpg" alt="">
+    <span class="title">南邮交友论坛</span>
+    <!-- 用来占据中间位置 -->
+    <span class="spacer"></span>
+    <a href="blog_list.html">主页</a>
+    <a href="login.html">登录</a>
+    <!-- <a href="#">注销</a> -->
+</div>
+<!-- 版心 -->
+<div class="login-container">
+    <!-- 中间的注册框 -->
+    <div class="login-dialog">
+        <h3>注册</h3>
+        <div class="row">
+            <span>用户名</span>
+            <input type="text" id="username">
+        </div>
+        <div class="row">
+            <span>密码</span>
+            <input type="password" id="password">
+        </div>
+        <div class="row">
+            <span>确认密码</span>
+            <input type="password" id="password2">
+        </div>
+
+        <div class="row">
+            <span>头像</span>
+            <input type="file" id="avatar" accept="image/*">
+        </div>
+        <div class="avatar-container">
+            <img id="avatarPreview" src="" alt="头像预览" style="max-width: 100px; max-height: 100px;">
+        </div>
+
+
+        <div class="row">
+            <button id="submit" onclick="mysub()">提交</button>
+        </div>
+
+        <!-- 隐藏的 input 用于存储 Base64 编码的头像 -->
+        <input type="hidden" id="avatarBase64">
+    </div>
+</div>
+<script>
+
+    /**
+     * 给用户名输入框添加事件监听器，当用户输入时检查用户名是否存在
+     */
+    document.getElementById('username').addEventListener('input', function () {
+        var username = this.value;
+        // 防抖，避免每次输入都发送请求
+        clearTimeout(this.delay);
+        this.delay = setTimeout(function () {
+            checkUsernameExists(username);
+        }, 500);
+    });
+
+    /**
+     * 检查用户名是否存在
+     * @param {string} username - 用户名
+     */
+    function checkUsernameExists(username) {
+        if (username.trim() === "") {
+            document.getElementById('usernameExists').textContent = '';
+            return;
+        }
+
+        jQuery.ajax({
+            url: "/user/checkUsername", // 修改为你的后端检查用户名的URL
+            type: "GET",
+            data: {"username": username},
+            success: function (res) {
+                if (res.data) {
+                    alert("用户名已存在，请重新输入！")
+                    // 清空用户名输入框
+                    document.getElementById('username').value = '';
+                    // 将光标定位到用户名输入框
+                    document.getElementById('username').focus();
+                }
+            }
+        });
+    }
+
+
+    document.getElementById('avatar').addEventListener('change', function(event) {
+        var file = event.target.files[0];
+
+        // 用于图片预览的 URL.createObjectURL 方法
+        var output = document.getElementById('avatarPreview');
+        output.src = URL.createObjectURL(file);
+        output.onload = function() {
+            URL.revokeObjectURL(output.src); // 释放内存
+        };
+
+        // 使用 FileReader 将图片转换为 Base64 编码
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('avatarBase64').value = e.target.result; // 保存 Base64 编码
+        };
+        reader.readAsDataURL(file);
+    });
+
+
+
+    // 提交用户注册信息
+    function mysub(){
+        // 1.参数效验（获取到数据|非空效验）
+        var username = jQuery("#username");
+        var password = jQuery("#password");
+        var password2 = jQuery("#password2");
+        var avatarBase64 = document.getElementById('avatarBase64').value;
+        if(username.val().trim()==""){
+            alert("请先输入用户名！");
+            username.focus();
+            return false;
+        }
+        if(password.val().trim()==""){
+            alert("请先输入密码！");
+            password.focus();
+            return false;
+        }
+        if(password2.val().trim()==""){
+            alert("请先输入确认密码！");
+            password2.focus();
+            return false;
+        }
+        // 效验两次输入的密码是否一致
+        if(password.val()!=password2.val()){
+            alert("两次密码不一致，请先检查！");
+            return false;
+        }
+        // 2.将数据提交给后端
+        jQuery.ajax({
+            url:"/user/reg",
+            type:"POST",
+            data:{
+                "username":username.val().trim(),
+                "password":password.val().trim(),
+                "avatar": avatarBase64 // 添加头像数据
+            },
+            success:function(res){
+                // 3.将后端返回的结果展示给用户
+                if(res.code==200 && res.data==1){
+                    // 注册成功
+                    alert("恭喜：注册成功！");
+                    // 调整到登录页
+                    location.href = "login.html";
+                }else{
+                    // 注册失败
+                    alert("抱歉：操作失败！"+res.msg);
+                }
+            }
+        });
+    }
+</script>
+</body>
+
+</html>

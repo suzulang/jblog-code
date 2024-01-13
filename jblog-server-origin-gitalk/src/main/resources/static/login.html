@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录页面</title>
+    <link rel="stylesheet" href="css/conmmon.css">
+    <link rel="stylesheet" href="css/login.css">
+    <script src="js/jquery.min.js"></script>
+    <link href="css/tac.css" rel="stylesheet">
+    <script src="js/tac.min.js"></script>
+</head>
+
+<body>
+<!-- 导航栏 -->
+<div class="nav">
+    <img src="img/blog-icon.jpg" alt="">
+    <span class="title">南邮交友论坛</span>
+    <!-- 用来占据中间位置 -->
+    <span class="spacer"></span>
+    <a href="blog_list.html">论坛主页</a>
+    <a href="reg.html">注册</a>
+</div>
+<!-- 版心 -->
+<div class="login-container">
+    <!-- 中间的登录框 -->
+    <div class="login-dialog">
+        <h3>登录</h3>
+        <div class="row">
+            <span>用户名</span>
+            <input type="text" id="username">
+        </div>
+        <div class="row">
+            <span>密码</span>
+            <input type="password" id="password">
+        </div>
+
+
+        <div id="captcha-box"></div>
+
+
+
+        <div class="row">
+            <button id="submit" onclick="openCaptcha('RANDOM')">登陆</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const config = {
+        requestCaptchaDataUrl: "/gen?type=RANDOM",
+        validCaptchaUrl: "/check",
+        bindEl: "#captcha-box",
+        validSuccess: function(res, c, tac) {
+            // 验证成功后进行登录
+            doLogin();
+            tac.destroyWindow();
+        }
+    };
+    const style = {
+        // 配置样式， logoURL地址
+        logoUrl: "/img/logo.png"
+    }
+
+    function openCaptcha(type) {
+        config.requestCaptchaDataUrl = "/gen?type=" + type;
+        new TAC(config).init();
+    }
+
+
+    function doLogin() {
+        // 效验用户名和密码
+        var username = $("#username").val().trim();
+        var password = $("#password").val().trim();
+        if (username == "") {
+            alert("请先输入用户名！");
+            return false;
+        }
+        if (password == "") {
+            alert("请先输入密码！");
+            return false;
+        }
+
+        // 发送登录请求到后端
+        $.ajax({
+            url: "/user/login",
+            type: "GET",
+            data: {
+                "username": username,
+                "password": password
+            },
+            success: function(res) {
+                if (res.code == 200 && res.data == 1) {
+                    location.href = "myblog_list.html";
+                } else {
+                    alert("登录失败：" + res.msg);
+                }
+            }
+        });
+    }
+</script>
+</body>
+
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>博客列表</title>
+    <link rel="stylesheet" href="css/conmmon.css">
+    <link rel="stylesheet" href="css/blog_list.css">
+    <script src="js/jquery.min.js"></script>
+    <script src="js/logout.js"></script>
+    <script src="js/utils.js"></script>
+
+</head>
+
+<body>
+<!-- 导航栏 -->
+<div class="nav">
+    <img class="userAvatar" src="#" alt="用户头像">
+    <a class="title" href="myblog_list.html">我的个人主页</a>
+    <!-- 用来占据中间位置 -->
+    <span class="spacer"></span>
+    <a href="blog_list.html">论坛主页</a>
+    <a href="blog_add.html">写博客</a>
+    <a href="javascript:logout()">注销</a>
+
+</div>
+<!-- 版心 -->
+<div class="container">
+    <!-- 右侧内容详情 -->
+    <div id="artListDiv" class="container-right" style="margin-left: 10%;">
+
+    </div>
+</div>
+<script>
+    $(document).ready(function() {
+        loadUserAvatar();
+    });
+    // 初始化方法
+    function init(){
+        jQuery.ajax({
+            url:"/art/mylist",
+            type:"GET",
+            data:{
+                aid: ""
+            },
+            success:function(res){
+                if(res.code==200){
+                    // 请求成功
+                    var createHtml = "";
+                    var responseData = res.data;
+                    var artList = responseData.articles; // 获取文章列表
+                    var photoUrl = responseData.photoUrl; // 获取头像URL
+
+                    // 更新头像图片的src属性
+                    if(photoUrl) {
+                        jQuery("#userAvatar").attr("src", photoUrl);
+                    }
+
+                    if(artList==null || artList.length==0){
+                        // 未发表文章
+                        createHtml += "<h3 style='margin-left:20px;margin-top:20px'>暂无文章，请先"+
+                            "<a href='blog_add.html'>添加</a>！</h3>";
+                    }else{
+                        for(var i=0;i<artList.length;i++){
+                            var art = artList[i];
+                            createHtml += '<div class="blog">';
+                            createHtml += '<div class="title">'+art.title+'</div>';
+                            createHtml += '<div class="date">'+art.createTime+'</div>';
+                            createHtml += '<div class="desc">';
+                            createHtml += art.content;
+                            createHtml += '</div>';
+                            createHtml += ' <a href="blog_content.html?aid='+
+                                art.id + '" class="detail">查看全文 &gt;&gt;</a>&nbsp;&nbsp;';
+                            createHtml += '<a href="blog_edit.html?aid='+
+                                art.id + '" class="detail">修改 &gt;&gt;</a>&nbsp;&nbsp;';
+                            createHtml += ' <a href="javascript:del('+art.id+')" class="detail">删除 &gt;&gt;</a>';
+                            createHtml += '</div>';
+                        }
+                    }
+                    jQuery("#artListDiv").html(createHtml);
+                }else{
+                    alert("抱歉：操作失败！"+res.msg);
+                }
+            }
+        });
+    }
+    init();
+    // 根据文章 id 进行删除操作
+    function del(aid){
+        // 1.参数效验
+        if(aid=="" || aid<=0){
+            alert("参数错误！");
+            return false;
+        }
+        // 2.将数据返回给后端进行删除操作
+        jQuery.ajax({
+            url:"/art/del",
+            type:"POST",
+            data:{
+                "aid":aid
+            },
+            success:function(res){
+                // 3.将结果展示给用户
+                if(res.code==200 && res.data==1){
+                    alert("恭喜：删除成功！");
+                    // 刷新当前页面
+                    location.href = location.href;
+                }else{
+                    // 删除失败
+                    alert("抱歉：操作失败！"+res.msg);
+                }
+            }
+        });
+    }
+</script>
+</body>
+
+</html>

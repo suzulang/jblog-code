@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>博客列表</title>
+    <link rel="stylesheet" href="css/list.css">
+    <link rel="stylesheet" href="css/blog_list.css">
+    <style>
+        
+        .nav{
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+        }
+        .container{
+            padding-top: 80px;
+            height: auto;
+        }
+        .container-right{
+            width: auto;
+        }
+        .blog-pagnation-wrapper{
+            height: 40px;
+            margin: 16px 0;
+            text-align: center;
+        }
+        .blog-pagnation-item{
+            display: inline-block;
+            padding: 8px;
+            border: 1px solid #d0d0d5;
+            color: #333;
+        }
+        .blog-pagnation-item:hover{
+            background: #4e4eeb;
+            color: #fff;
+        }
+        .blog-pagnation-item.actvie{
+            background: #4e4eeb;
+            color: #fff;
+        }
+
+    </style>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/urlutils.js"></script>
+    <script src="js/logout.js"></script>
+    <script src="js/utils.js"></script>
+
+</head>
+
+<body>
+    <!-- 导航栏 -->
+    <div class="nav">
+        <img class="userAvatar" src="#" alt="" style="display: none;">
+        <a id="personalHomepage" class="title" href="myblog_list.html" style="display: none;">我的个人主页</a>
+        <!-- 用来占据中间位置 -->
+        <span class="spacer"></span>
+        <a href="blog_list.html">论坛主页</a>
+        <a href="blog_add.html">写博客</a>
+        <a id="loginButton" href="#">登录</a>
+    </div>
+    <!-- 版心 -->
+    <div class="container">
+        <!-- 右侧内容详情 -->
+        <div class="container-right" style="width: 100%;">
+            <div id="artListDiv">
+                
+            </div>
+           
+            <hr>
+            <div class="blog-pagnation-wrapper">
+                <button class="blog-pagnation-item" onclick="doFirst()">首页</button> 
+                <button class="blog-pagnation-item" onclick="doBefore()">上一页</button>  
+                <button class="blog-pagnation-item" onclick="doNext()">下一页</button>
+                <button class="blog-pagnation-item" onclick="doLast()">末页</button>
+                &nbsp;&nbsp;&nbsp;&nbsp;
+                当前在第 <span id="pindex"></span> 页，共 <span id="pszie"></span> 页
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLoginAndUpdateButton();
+        });
+
+        function checkLoginAndUpdateButton() {
+            $.ajax({
+                url: '/user/checkLogin',
+                type: 'GET',
+                success: function(result) {
+                    const loginButton = $('#loginButton');
+                    const personalHomepage = $('#personalHomepage');
+                    const userAvatar = $('.userAvatar'); // 选择类为 userAvatar 的元素
+                    if (result.code === 200 && result.data === true) {
+                        // 用户已登录
+                        loginButton.text('注销');
+                        loginButton.attr('href', 'javascript:logout()');
+                        userAvatar.show(); // 显示用户头像
+                        personalHomepage.show(); // 显示个人主页链接
+                    } else {
+                        // 用户未登录
+                        loginButton.text('登录');
+                        loginButton.attr('href', 'javascript:login()');
+                    }
+                },
+                error: function(error) {
+                    console.error('Error:', error);
+                }
+            });
+        }
+        function login() {
+            // 重定向到 login.html
+            window.location.href = 'login.html';
+        }
+
+
+
+        var psize = 2; // 每页显示条数
+        var pindex = 1; // 页码
+        var totalpage = 1; // 总共有多少页
+        // 初始化数据
+        function init(){
+            // 1.处理分页参数
+            psize = getParamValue("psize");
+            if(psize==null){
+                psize = 2; // 每页显示条数
+            }
+            pindex = getParamValue("pindex");
+            if(pindex==null){
+                pindex = 1; // 页码
+            }
+            jQuery("#pindex").html(pindex);
+            // 2.请求后端接口
+            jQuery.ajax({
+                url:"/art/getListByPage",
+                type:"GET",
+                data:{
+                    "pindex":pindex,
+                    "psize":psize
+                },
+                success:function(res){
+                    // 检查响应是否成功
+                    if (res.code == 200 && res.data != null) {
+                        var createHtml = "";
+                        var artlist = res.data.articles; // 获取文章列表
+                        totalpage = res.data.totalPages; // 获取总页数
+                        jQuery("#pszie").html(totalpage); // 显示总页数
+                        jQuery("#pindex").html(res.data.currentPage); // 显示当前页码
+
+                        if (artlist != null && artlist.length > 0) {
+                            // 处理每篇文章
+                            for (var i = 0; i < artlist.length; i++) {
+                                var art = artlist[i]; // 文章对象
+                                createHtml += '<div class="blog">';
+                                createHtml += '<div class="title">' + art.title + '</div>';
+                                createHtml += '<div class="date">' + art.createTime + '</div>';
+                                createHtml += '<div class="desc">' + art.content + '</div>';
+                                createHtml += '<a href="blog_content.html?aid=' +
+                                    art.id + '" class="detail">查看全文 &gt;&gt;</a>';
+                                createHtml += '</div>';
+                            }
+                        } else {
+                            // 暂无文章
+                            createHtml += '<h3 style="margin-top:20px;margin-left:20px;">暂无文章！</h3>';
+                        }
+                        jQuery("#artListDiv").html(createHtml);
+                    } else {
+                        alert("抱歉：查询失败！" + res.msg);
+                    }
+                }
+            });
+        }
+        init();
+
+        // 点击首页
+        function doFirst(){
+            // 1.判断是否在首页
+            if(pindex<=1){
+                alert("已经在首页了，无需跳转！");
+                return false;
+            }
+            // 2.跳转到首页
+            location.href = "blog_list.html";
+        }
+        // 点击末页
+        function doLast(){
+            // 1.判断是否在末页
+            if(pindex>=totalpage){
+                alert("已经在末页了，无需跳转！");
+                return false;
+            }
+            // 2.跳转到末页
+            location.href = "blog_list.html?pindex="+totalpage;
+        }
+        // 点击“上一页”
+        function doBefore(){
+            // 1.判断是否在首页
+            if(pindex<=1){
+                alert("已经在首页了，无需跳转！");
+                return false;
+            }
+            // 2.跳转上一页
+            location.href = "blog_list.html?pindex="+(parseInt(pindex)-1);
+        }
+        // 点击“写一页”
+        function doNext(){
+             // 1.判断是否在末页
+             if(pindex>=totalpage){
+                alert("已经在末页了，无需跳转！");
+                return false;
+            }
+            // 2.跳转到下一页
+            location.href = "blog_list.html?pindex="+(parseInt(pindex)+1);
+        }
+        $(document).ready(function() {
+            loadUserAvatar();
+        });
+    </script>
+</body>
+</html>

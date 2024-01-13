@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    url: jdbc:mysql://ip_address:port/myblog?characterEncoding=utf8&useSSL=false
+    username: username
+    password: password
+    driver-class-name: com.mysql.jdbc.Driver
+    hikari:
+      connection-timeout: 30000 # 连接超时时间（毫秒）
+      idle-timeout: 600000 # 连接在池中闲置的最长时间（毫秒）
+      max-lifetime: 1800000 # 连接的最大生存期（毫秒）
+      validation-timeout: 5000 # 连接验证查询的超时时间（毫秒）
+  redis:
+    host: 182.254.141.38
+    port: 6379
+
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.example.demo: debug
+
+
+server:
+  port: 8082
+
+qiniu:
+  access:
+    key: ig3UWFBY8XSlh4w7ghIOdRdPtFGPfP3MXreakJ2H
+  secret:
+    key: aQm7wm80V3H1AEBSrzlahHMS8G6LuvG7IPKUKJFi
+  bucket:
+    name: jtp-blog
+
+
+
