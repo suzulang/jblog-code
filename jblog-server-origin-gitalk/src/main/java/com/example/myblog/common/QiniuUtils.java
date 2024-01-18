@@ -79,8 +79,8 @@ public class QiniuUtils {
         boolean useHttps = true;
         DownloadUrl url = new DownloadUrl(domain, useHttps, key);
 
-        // 设置链接的有效期为半年
-        long expireInSeconds = 180 * 24 * 3600; // 180天 * 24小时/天 * 3600秒/小时
+        // 设置链接的有效期为一天
+        long expireInSeconds = 86400; // 24小时 * 3600秒/小时
         long deadline = System.currentTimeMillis() / 1000 + expireInSeconds;
 
         // 使用七牛云的AccessKey和SecretKey创建Auth对象
@@ -94,7 +94,7 @@ public class QiniuUtils {
             e.printStackTrace();
         }
 
-        System.out.println(urlString);
+//        System.out.println(urlString);
         return urlString;
     }
 

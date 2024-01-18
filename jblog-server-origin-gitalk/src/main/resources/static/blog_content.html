@@ -24,7 +24,7 @@
 <body>
 <!-- 导航栏 -->
 <div class="nav">
-    <img class="userAvatar" src="#" alt="">
+    <img class="userAvatar" src="img/blog-icon.jpg" alt="">
     <a class="title" href="myblog_list.html">我的个人主页</a>
     <!-- 用来占据中间位置 -->
     <span class="spacer"></span>
@@ -70,7 +70,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         checkLoginAndUpdateButton();
     });
-
     function checkLoginAndUpdateButton() {
         $.ajax({
             url: '/user/checkLogin',

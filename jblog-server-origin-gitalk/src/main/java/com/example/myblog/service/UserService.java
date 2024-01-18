@@ -1,16 +1,22 @@
 package com.example.myblog.service;
 
+import cn.hutool.cron.CronUtil;
+import cn.hutool.cron.task.Task;
 import com.example.myblog.common.CustomException;
 import com.example.myblog.common.PasswordUtils;
 import com.example.myblog.common.QiniuUtils;
 import com.example.myblog.dao.UserMapper;
 import com.example.myblog.model.UserInfo;
 import com.example.myblog.model.vo.UserInfoVO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class UserService {
@@ -18,6 +24,8 @@ public class UserService {
     private UserMapper userMapper;
     @Autowired
     private QiniuUtils qiniuUtils;
+
+    private static final Logger logger = LoggerFactory.getLogger(ArticleService.class);
 
     public int reg(UserInfo userInfo, String avatar){
         // 参数校验（可根据需求调整）
@@ -31,11 +39,13 @@ public class UserService {
         // 处理头像上传
         if (avatar != null) {
             try {
-                // 生成文件名（例如使用用户名或者唯一ID）
-                String fileName = "avatar_" + System.currentTimeMillis(); // 使用时间戳保证唯一性
+                // 生成文件名，用用户id作为唯一键
+                String fileName = "avatar_" + userInfo.getId(); //
                 // 上传头像到七牛云
                 qiniuUtils.upload2Qiniu(avatar, fileName);
-                // 更新用户信息中的头像URL
+                // 获取可以访问的外链
+                String photo_link = qiniuUtils.getDownloadUrl(fileName);
+                // 给userinfo表中的对应的photo_link字段设置值
                 userInfo.setPhotoLink(qiniuUtils.getDownloadUrl(fileName));
             } catch (Exception e) {
                 e.printStackTrace();
@@ -43,7 +53,7 @@ public class UserService {
             }
         }
 
-        // 向数据库添加用户信息
+        // 向数据库添加封装好的用户信息
         return userMapper.reg(userInfo);
     }
 
@@ -83,4 +93,38 @@ public class UserService {
         UserInfo userInfo = userMapper.getUserByName(username);
         return userInfo != null;
     }
+
+    public List<UserInfo> getAllUsers(){
+        return userMapper.getAllUsers();
+    }
+
+    /**
+     * 获取七牛云上的新 URL 并更新数据库
+     */
+    public  void updatePhotoLink() {
+        List<UserInfo> allUsers = userMapper.getAllUsers();
+        allUsers.forEach(userInfo -> {
+            // 为每个用户获取新的照片链接
+            String newPhotoLink = QiniuUtils.getDownloadUrl("avatar_" + userInfo.getId());
+            // 更新数据库中该用户的 photoLink 字段
+            userMapper.updatePhotoLink(userInfo.getId(), newPhotoLink);
+        });
+    }
+
+    @PostConstruct
+    public void init() {
+        scheduleUpdatePhotoLinkTask();
+    }
+
+    public void scheduleUpdatePhotoLinkTask() {
+        // 安排定时任务，每天午夜执行
+        CronUtil.schedule("0 58 19 * * *", new Task() {
+            @Override
+            public void execute() {
+                updatePhotoLink();
+            }
+        });
+    }
+
+
 }
